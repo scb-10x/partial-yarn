@@ -1,0 +1,2 @@
+librosa
+transformers[torch]==4.53.2
