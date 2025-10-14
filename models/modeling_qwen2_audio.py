@@ -31,7 +31,7 @@ from transformers.generation import GenerationMixin
 from transformers.modeling_layers import GradientCheckpointingLayer
 from transformers.modeling_outputs import BaseModelOutput, ModelOutput
 from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
-from transformers.utils import auto_docstring, logging
+from transformers.utils import logging
 from transformers import AutoModel, AutoModelForCausalLM, Qwen2AudioConfig, Qwen2AudioEncoderConfig
 
 sys.path.append(str(Path(__file__).resolve().parent))
@@ -41,11 +41,6 @@ logger = logging.get_logger(__name__)
 
 
 @dataclass
-@auto_docstring(
-    custom_intro="""
-    Base class for Qwen2Audio causal language model (or autoregressive) outputs.
-    """
-)
 class Qwen2AudioCausalLMOutputWithPast(ModelOutput):
     r"""
     loss (`torch.FloatTensor` of shape `(1,)`, *optional*, returned when `labels` is provided):
@@ -268,7 +263,6 @@ class Qwen2AudioEncoderLayer(GradientCheckpointingLayer):
         return outputs
 
 
-@auto_docstring
 class Qwen2AudioPreTrainedModel(PreTrainedModel):
     config_class = Qwen2AudioConfig
     base_model_prefix = "model"
@@ -297,11 +291,6 @@ class Qwen2AudioPreTrainedModel(PreTrainedModel):
                 module.weight.data[module.padding_idx].zero_()
 
 
-@auto_docstring(
-    custom_intro="""
-    The audio model from Qwen2Audio without any head or projection on top.
-    """
-)
 # Copied from transformers.models.whisper.modeling_whisper.WhisperEncoder with Whisper->Qwen2Audio
 class Qwen2AudioEncoder(Qwen2AudioPreTrainedModel):
     """
@@ -481,11 +470,6 @@ class Qwen2AudioMultiModalProjector(nn.Module):
         return hidden_states
 
 
-@auto_docstring(
-    custom_intro="""
-    The QWEN2AUDIO model which consists of a audio backbone and a language model.
-    """
-)
 class Qwen2AudioForConditionalGeneration(Qwen2AudioPreTrainedModel, GenerationMixin):
     def __init__(
         self,
@@ -744,7 +728,6 @@ class Qwen2AudioForConditionalGeneration(Qwen2AudioPreTrainedModel, GenerationMi
 
         return final_embedding, final_attention_mask, final_labels, position_ids, final_input_ids
 
-    @auto_docstring
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,

@@ -14,7 +14,7 @@ from transformers import set_seed
 
 
 sys.path.append(str(Path(__file__).parent))
-from constants import MCQA_ANSWER_PARSING_REGEX_PATTERN, ACCEPTABLE_MCQA_ANSWERS, MCQA_INSTRUCTION
+from constants import GENERIC_INSTRUCTION
 from models.processing_qwen2_audio import Qwen2AudioProcessor
 from models.modeling_qwen2_audio import Qwen2AudioForConditionalGeneration
 
@@ -38,39 +38,15 @@ def parse_args():
     return args
 
 
-def parse_response_for_mcqa_answer(response):
-    answer = re.search(MCQA_ANSWER_PARSING_REGEX_PATTERN, response)
-    if answer:
-        return answer.group(1)
-
-    # Catch one sided parenthesis
-    answer = re.search(r"(\d)\)", response)
-    if answer:
-        return answer.group(1)
-
-    # Catch a single dot
-    answer = re.search(r"(\d)\.", response)
-    if answer:
-        return answer.group(1)
-
-    return None
-
-
-def evaluate_model_single_sample_mcqa(model, sample, processor) -> bool:
-    target_answer = sample["text"]
-    if target_answer not in ACCEPTABLE_MCQA_ANSWERS:
-        logging.warning(
-            f"Evaluation sample target answer ({target_answer}) is not in acceptable form {ACCEPTABLE_MCQA_ANSWERS}."
-        )
-
+def generate_response_for_sample(model, sample, processor):
     question = sample["Q"]
-    question = MCQA_INSTRUCTION.replace("the given audio", "all the given audios").format(question)
+    question = GENERIC_INSTRUCTION.format(question)
 
     # Load and chunk the audio file
     audio, sr = librosa.load(sample["path"], sr=processor.feature_extractor.sampling_rate)
     assert sr == processor.feature_extractor.sampling_rate
 
-    chunk_size = int(sr * 30)
+    chunk_size = int(sr * 30)  # 30-second chunks
     num_audio_chunks = math.ceil(audio.shape[0] / chunk_size)
     split_indices = np.arange(chunk_size, audio.shape[0], chunk_size)
     audio_chunks = np.split(audio, split_indices, axis=0)
@@ -80,7 +56,7 @@ def evaluate_model_single_sample_mcqa(model, sample, processor) -> bool:
 
     # Prepare input for the model
     input_content = [{"type": "audio", "audio_array": audio_chunk} for audio_chunk in audio_chunks]
-    input_content += [{"type": "text", "text": question}]
+    input_content.append({"type": "text", "text": question})
 
     conversation = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -100,19 +76,15 @@ def evaluate_model_single_sample_mcqa(model, sample, processor) -> bool:
     # Generate response
     with torch.inference_mode():
         generate_ids = model.generate(**inputs, max_new_tokens=512)
+
     generate_ids = generate_ids[:, inputs.input_ids.size(1) :]
-
     response = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
-    answer = parse_response_for_mcqa_answer(response)
 
-    if answer is None or answer not in ACCEPTABLE_MCQA_ANSWERS:
-        logging.info(f"Error parsing model response: {response}")
-        logging.info(f"The inputted prompt is: {conversation}")
-        logging.info(f"Target answer is: {target_answer}")
-
-        return None
-
-    return answer == target_answer
+    # Print the results
+    print("-" * 80)
+    print(f"Question: {sample['Q']}")
+    print(f"Model Response: {response}")
+    print("-" * 80 + "\n")
 
 
 if __name__ == "__main__":
@@ -128,6 +100,7 @@ if __name__ == "__main__":
         partial_interpolation_attention_temperature=args.attention_temperature,
     )
     print("Partial Yarn config:", partial_yarn_args)
+    print("Model name:", args.model_path)
 
     # Load model and processor
     model = Qwen2AudioForConditionalGeneration.from_pretrained(
@@ -145,21 +118,7 @@ if __name__ == "__main__":
         test_dataset = json.load(f)["annotation"]
 
     # Process each sample
-    total_errored = 0
-    total_samples = 0
-    correct_samples = 0
-    for test_sample in tqdm(test_dataset):
-        assert test_sample["task"] == "QA"
-        result = evaluate_model_single_sample_mcqa(model=model, sample=test_sample, processor=processor)
-
-        if result is None:
-            total_errored += 1
-
-        correct_samples += bool(result)
-        total_samples += 1
-
-    qa_accuracy = correct_samples / total_samples
-    print("MCQA Evaluation accuracy =", qa_accuracy)
-    print("Errored responses =", total_errored)
+    for test_sample in tqdm(test_dataset, desc="Generating responses"):
+        generate_response_for_sample(model=model, sample=test_sample, processor=processor)
 
     print("Inference completed.")
