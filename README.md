@@ -27,12 +27,14 @@ The repository is organized as follows:
 │   ├── modeling_qwen2_audio.py     # Main LALM model definition
 │   ├── modeling_qwen2.py           # Modified Qwen2 text backbone with Partial YaRN RoPE implementation
 │   └── processing_qwen2_audio.py   # Model's processor
-└── inference_qwen2_audio_mcqa.py   # Main script for running evaluation
+├── inference_qwen2_audio.py        # Script for general-purpose inference
+└── inference_qwen2_audio_mcqa.py   # Script for MCQA evaluation
 ```
 
 -   **`models/modeling_qwen2.py`**: This is the most critical file, containing our custom implementations of Rotary Position Embeddings (RoPE). The `Qwen2PartialYarnRotaryEmbedding` class implements the logic for applying positional interpolation exclusively to audio tokens.
--   **`inference_qwen2_audio_mcqa.py`**: This script serves as the main entry point for running inference and evaluating the model on a multiple-choice question-answering task. It handles data loading, processing, and model evaluation, and includes command-line arguments to enable Partial YaRN.
--   **`assets/`**: This directory contains sample data and images needed to run the code and understand the project.
+-   **`inference_qwen2_audio_mcqa.py`**: This script runs a formal evaluation on a multiple-choice question-answering (MCQA) task. It parses the model's output to calculate an accuracy score.
+-   **`inference_qwen2_audio.py`**: This script is for general-purpose inference. It takes the same inputs but prints the model's raw text response directly without any parsing or scoring.
+-   **`assets/`**: This directory contains sample data needed to run the code.
 
 ## ⚙️ Installation
 
@@ -58,18 +60,9 @@ To set up the environment and install the required dependencies, please follow t
 
 ## ▶️ Usage
 
-The primary script for running experiments is `inference_qwen2_audio_mcqa.py`. It evaluates the model's performance on a dataset specified in JSON format.
+We provide two scripts for interacting with the model: one for formal MCQA evaluation and another for general-purpose inference. Both scripts share the same set of command-line arguments for model configuration.
 
-### Running Inference
-
-To run the evaluation, execute the script with the path to your test dataset. You can use the provided `sample_data.json` for a quick test.
-
-**Command Structure:**
-```bash
-python inference_qwen2_audio_mcqa.py --test-dataset-path <path_to_your_data.json> [OPTIONS]
-```
-
-### Command-Line Arguments
+### Shared Command-Line Arguments
 
 -   `--test-dataset-path` (required): Path to the JSON file containing the test dataset.
 -   `--model-path`: The Hugging Face path or local directory of the model to be evaluated. Defaults to `Qwen/Qwen2-Audio-7B-Instruct`.
@@ -77,17 +70,25 @@ python inference_qwen2_audio_mcqa.py --test-dataset-path <path_to_your_data.json
 -   `--interpolation-start-dim`: Specifies the dimension index from which to start applying interpolation in Partial YaRN. A value greater than 0 enables Partial YaRN logic.
 -   `--attention-temperature`: A scaling factor applied to the attention scores of audio tokens when using Partial YaRN.
 
-### Examples
+### 1. MCQA Evaluation
 
-1.  **Running the baseline Qwen2-Audio model (without Partial YaRN):**
+Use `inference_qwen2_audio_mcqa.py` to evaluate the model's accuracy on an MCQA dataset.
+
+**Command Structure:**
+```bash
+python inference_qwen2_audio_mcqa.py --test-dataset-path <path_to_your_data.json> [OPTIONS]
+```
+
+**Examples:**
+
+*   **Running the baseline model:**
     ```bash
     python inference_qwen2_audio_mcqa.py \
         --test-dataset-path assets/sample_data.json \
         --model-path Qwen/Qwen2-Audio-7B-Instruct
     ```
 
-2.  **Running the model with Partial YaRN enabled:**
-    This command activates Partial YaRN, starting interpolation from the 32nd dimension of the rotary embeddings and applying an attention temperature of 1.2.
+*   **Running with Partial YaRN enabled:**
     ```bash
     python inference_qwen2_audio_mcqa.py \
         --test-dataset-path assets/sample_data.json \
@@ -95,6 +96,32 @@ python inference_qwen2_audio_mcqa.py --test-dataset-path <path_to_your_data.json
         --enable-partial-yarn \
         --interpolation-start-dim 32 \
         --attention-temperature 1.2
+    ```
+
+### 2. General-Purpose Inference
+
+Use `inference_qwen2_audio.py` to see the model's direct text output for your questions.
+
+**Command Structure:**
+```bash
+python inference_qwen2_audio.py --test-dataset-path <path_to_your_data.json> [OPTIONS]
+```
+**Examples:**
+
+*   **Running the baseline model:**
+    ```bash
+    python inference_qwen2_audio.py \
+        --test-dataset-path assets/sample_data.json \
+        --model-path Qwen/Qwen2-Audio-7B-Instruct
+    ```
+
+*   **Running with Partial YaRN enabled:**
+    ```bash
+    python inference_qwen2_audio.py \
+        --test-dataset-path assets/sample_data.json \
+        --model-path Qwen/Qwen2-Audio-7B-Instruct \
+        --enable-partial-yarn \
+        --interpolation-start-dim 32
     ```
 
 ## 💡 How It Works
@@ -106,6 +133,6 @@ The core of our method is implemented in **`models/modeling_qwen2.py`**. We have
 3.  **Targeted Interpolation**:
     -   If a token is identified as **text**, its original positional ID is used.
     -   If a token is identified as **audio**, we calculate a new, interpolated positional ID. This is done by scaling the positions of the audio segment from its actual token length down to the model's original trained audio length (e.g., mapping a 60s audio segment's tokens into the positional space of a 30s segment).
-4.  **Inference Script Integration**: The `inference_qwen2_audio_mcqa.py` script passes the necessary flags (`enable_partial_yarn`, `interpolation_start_dim`, etc.) during model initialization, ensuring that our custom RoPE module is used and configured correctly.
+4.  **Inference Script Integration**: The inference scripts (`inference_qwen2_audio_mcqa.py` and `inference_qwen2_audio.py`) pass the necessary flags (`--enable-partial-yarn`, etc.) during model initialization, ensuring that our custom RoPE module is used and configured correctly.
 
 This targeted approach allows the model to handle long audio inputs by "compressing" their positional information into the range it was trained on, all while ensuring the text processing capabilities remain unaffected.
