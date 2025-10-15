@@ -42,8 +42,8 @@ To set up the environment and install the required dependencies, please follow t
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
-    cd <your-repo-name>
+    git clone https://github.com/scb-10x/partial-yarn.git
+    cd partial-yarn
     ```
 
 2.  **Create and activate a Python virtual environment:**
