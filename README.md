@@ -68,7 +68,7 @@ We provide two scripts for interacting with the model: one for formal MCQA evalu
 -   `--model-path`: The Hugging Face path or local directory of the model to be evaluated. Defaults to `Qwen/Qwen2-Audio-7B-Instruct`.
 -   `--enable-partial-yarn`: **This is the key flag.** Add it to activate the Partial YaRN context extension method.
 -   `--interpolation-start-dim`: Specifies the dimension index from which to start applying interpolation in Partial YaRN. A value greater than 0 enables Partial YaRN logic.
--   `--attention-temperature`: A scaling factor applied to the attention scores of audio tokens when using Partial YaRN.
+-   `--attention-temperature`: A scaling factor applied to the audio tokens when calculating attention score with Partial YaRN enabled.
 
 ### 1. MCQA Evaluation
 
