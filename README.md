@@ -1,9 +1,12 @@
 
 # Partial YaRN: Audio-Only Context Extension for Large Audio-Language Models
 
-This repository contains the PyTorch code of **Partial YaRN** and **Virtual Longform Audio Training (VLAT)**. Our work focuses on extending the audio context window of Large Audio-Language Models (LALMs) without degrading the sophisticated language capabilities of the base Large Language Model (LLM).
+This repository contains the PyTorch code of **Partial YaRN** and **Virtual Longform Audio Training (VLAT)** from the paper: \
+[Extending Audio Context for Long-Form Understanding in Large Audio-Language Models](https://arxiv.org/abs/2510.15231). 2025.
 
-The core idea is to apply context extension methods, such as YaRN, in a targeted manner. Instead of altering the positional encodings of the entire input sequence, Partial YaRN modifies *only* the audio tokens. This preserves the original positional information for text tokens, thereby protecting the LLM's pretrained language understanding.
+Our work focuses on extending the audio context window of Large Audio-Language Models (LALMs) without degrading the sophisticated language capabilities of the base Large Language Model (LLM). The core idea is to apply context extension methods, such as YaRN, in a targeted manner. Instead of altering the positional encodings of the entire input sequence, Partial YaRN modifies *only* the audio tokens. This preserves the original positional information for text tokens, thereby protecting the LLM's pretrained language understanding.
+
+---
 
 ![Partial YaRN Concept](assets/partial_yarn.png)
 
@@ -14,7 +17,7 @@ The core idea is to apply context extension methods, such as YaRN, in a targeted
 * [How It Works](#-how-it-works)
 * [Citation](#-citation)
 
-## 📂 Repository Structure
+## 📂 Repository Structure <a name="-repository-structure"></a>
 
 The repository is organized as follows:
 
@@ -36,7 +39,7 @@ The repository is organized as follows:
 -   **`inference_qwen2_audio.py`**: This script is for general-purpose inference. It takes the same inputs but prints the model's raw text response directly without any parsing or scoring.
 -   **`assets/`**: This directory contains sample data needed to run the code.
 
-## ⚙️ Installation
+## ⚙️ Installation <a name="-installation"></a>
 
 To set up the environment and install the required dependencies, please follow these steps. We recommend using a Python virtual environment.
 
@@ -58,7 +61,7 @@ To set up the environment and install the required dependencies, please follow t
     pip install -r requirements.txt
     ```
 
-## ▶️ Usage
+## ▶️ Usage <a name="-usage"></a>
 
 We provide two scripts for interacting with the model: one for formal MCQA evaluation and another for general-purpose inference. Both scripts share the same set of command-line arguments for model configuration.
 
@@ -124,7 +127,7 @@ python inference_qwen2_audio.py --test-dataset-path <path_to_your_data.json> [OP
         --interpolation-start-dim 32
     ```
 
-## 💡 How It Works
+## 💡 How It Works <a name="-how-it-works"></a>
 
 The core of our method is implemented in **`models/modeling_qwen2.py`**. We have modified the standard Rotary Position Embedding (RoPE) module of the Qwen2 architecture.
 
@@ -136,3 +139,18 @@ The core of our method is implemented in **`models/modeling_qwen2.py`**. We have
 4.  **Inference Script Integration**: The inference scripts (`inference_qwen2_audio_mcqa.py` and `inference_qwen2_audio.py`) pass the necessary flags (`--enable-partial-yarn`, etc.) during model initialization, ensuring that our custom RoPE module is used and configured correctly.
 
 This targeted approach allows the model to handle long audio inputs by "compressing" their positional information into the range it was trained on, all while ensuring the text processing capabilities remain unaffected.
+
+## Citation <a name="-citation"></a>
+
+If you find this repository helpful, please consider citing:
+```
+@misc{chaichana2025extendingaudiocontextlongform,
+      title={Extending Audio Context for Long-Form Understanding in Large Audio-Language Models}, 
+      author={Yuatyong Chaichana and Pittawat Taveekitworachai and Warit Sirichotedumrong and Potsawee Manakul and Kunat Pipatanakul},
+      year={2025},
+      eprint={2510.15231},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2510.15231}, 
+}
+```
